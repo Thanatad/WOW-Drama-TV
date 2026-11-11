@@ -1,0 +1,431 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootContainer"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/cinematic_bg"
+    android:keepScreenOn="true">
+
+    <!-- Primary Vertical TV Container -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- Google TV Top Navigation & Category Bar -->
+        <HorizontalScrollView
+            android:id="@+id/tvTopBarScroll"
+            android:layout_width="match_parent"
+            android:layout_height="62dp"
+            android:background="#131620"
+            android:elevation="10dp"
+            android:fillViewport="true"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/tvTopBar"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp">
+
+                <!-- Logo Title -->
+                <TextView
+                    android:id="@+id/tvLogo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="16dp"
+                    android:text="🎬 WOW DRAMA"
+                    android:textColor="@color/accent_red"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <!-- 1. Category: Chinese Drama -->
+                <Button
+                    android:id="@+id/btnCatChina"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="10dp"
+                    android:background="@drawable/tv_nav_button_bg"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:text="🇨🇳 จีน"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <!-- 2. Category: Thai Drama -->
+                <Button
+                    android:id="@+id/btnCatThai"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="10dp"
+                    android:background="@drawable/tv_nav_button_bg"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:text="🇹🇭 ไทย"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:textSize="14sp" />
+
+                <!-- 3. Category: Korean Drama -->
+                <Button
+                    android:id="@+id/btnCatKorea"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="10dp"
+                    android:background="@drawable/tv_nav_button_bg"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:text="🇰🇷 เกาหลี"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:textSize="14sp" />
+
+                <!-- 4. Category: Japanese Drama -->
+                <Button
+                    android:id="@+id/btnCatJapan"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="10dp"
+                    android:background="@drawable/tv_nav_button_bg"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:text="🇯🇵 ญี่ปุ่น"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:textSize="14sp" />
+
+                <!-- 5. Category: All / Home -->
+                <Button
+                    android:id="@+id/btnCatAll"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="10dp"
+                    android:background="@drawable/tv_nav_button_bg"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:text="🏠 ทั้งหมด"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:textSize="14sp" />
+
+                <!-- Search Button -->
+                <Button
+                    android:id="@+id/btnSearch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="10dp"
+                    android:background="@drawable/tv_nav_button_bg"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:text="🔍 ค้นหา"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:textSize="14sp" />
+
+                <!-- Reload Button -->
+                <Button
+                    android:id="@+id/btnReload"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:background="@drawable/tv_nav_button_bg"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:text="🔄 รีเฟรช"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:textSize="14sp" />
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <!-- Loading Progress Bar -->
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:indeterminate="false"
+            android:max="100"
+            android:progress="0"
+            android:progressTint="@color/accent_red"
+            android:visibility="gone" />
+
+        <!-- Web Content Frame -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <!-- Primary WebView for WOW Drama -->
+            <WebView
+                android:id="@+id/webView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:descendantFocusability="afterDescendants"
+                android:focusable="true"
+                android:focusableInTouchMode="true" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <!-- Fullscreen Container for HTML5 Video / WebChromeClient CustomView -->
+    <FrameLayout
+        android:id="@+id/fullscreenContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/black"
+        android:elevation="50dp"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:visibility="gone" />
+
+    <!-- Google TV Quick Search Dialog Overlay -->
+    <LinearLayout
+        android:id="@+id/tvSearchOverlay"
+        android:layout_width="520dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@drawable/tv_search_dialog_bg"
+        android:elevation="30dp"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔍 ค้นหาซีรี่ย์ (Search Drama)"
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etSearchInput"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginTop="16dp"
+            android:background="#202534"
+            android:hint="พิมพ์ชื่อเรื่องที่ต้องการดู..."
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textColor="@color/white"
+            android:textColorHint="#8892A8"
+            android:textSize="16sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:gravity="end"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnCancelSearch"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginEnd="12dp"
+                android:background="@drawable/tv_nav_button_bg"
+                android:text="ยกเลิก"
+                android:textColor="#B0B8C8"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnSubmitSearch"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:background="@drawable/tv_nav_button_bg"
+                android:backgroundTint="@color/accent_red"
+                android:text="ค้นหาเลย"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- TV Remote Help / Status Toast Overlay -->
+    <LinearLayout
+        android:id="@+id/tvStatusOverlay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="20dp"
+        android:background="#E0151822"
+        android:elevation="12dp"
+        android:orientation="horizontal"
+        android:paddingStart="14dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="8dp"
+        android:visibility="visible">
+
+        <TextView
+            android:id="@+id/tvFilterBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🛡️ AdBlock เปิดใช้งาน"
+            android:textColor="@color/accent_blue"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:text="📺 รีโมท: เลื่อน D-pad • กลาง: เลือก • Back: ย้อนกลับ"
+            android:textColor="#CCFFFFFF"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Error / Retry Screen for Offline or Load Errors -->
+    <LinearLayout
+        android:id="@+id/errorContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="#E6161922"
+        android:elevation="15dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvErrorTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ไม่สามารถโหลดข้อมูล WOW Drama ได้"
+            android:textColor="@color/white"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvErrorMessage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:text="กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตของทีวีแล้วลองใหม่อีกครั้ง"
+            android:textColor="#B0B8C8"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/btnRetry"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/tv_nav_button_bg"
+            android:backgroundTint="@color/accent_red"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:text="ลองใหม่อีกครั้ง (Retry)"
+            android:textColor="@color/white" />
+    </LinearLayout>
+
+    <!-- In-App Update Prompt / Download Overlay -->
+    <LinearLayout
+        android:id="@+id/tvUpdateOverlay"
+        android:layout_width="560dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@drawable/tv_search_dialog_bg"
+        android:elevation="60dp"
+        android:orientation="vertical"
+        android:padding="26dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvUpdateTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔄 พบเวอร์ชันใหม่"
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvUpdateNotes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:textColor="#B0B8C8"
+            android:textSize="14sp" />
+
+        <ProgressBar
+            android:id="@+id/tvUpdateProgress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:max="100"
+            android:progress="0"
+            android:progressTint="@color/accent_red"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvUpdateProgressText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="กำลังดาวน์โหลด... 0%"
+            android:textColor="@color/accent_blue"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:gravity="end"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnUpdateLater"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginEnd="12dp"
+                android:background="@drawable/tv_nav_button_bg"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:text="ภายหลัง"
+                android:textAllCaps="false"
+                android:textColor="#B0B8C8"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnUpdateNow"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:background="@drawable/tv_nav_button_bg"
+                android:backgroundTint="@color/accent_red"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:text="อัปเดตเลย"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+</FrameLayout>

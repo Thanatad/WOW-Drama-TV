@@ -1,0 +1,32 @@
+# Gradle
+.gradle/
+build/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+captures/
+.aistudio/
+.antigravity/
+
+# Local machine configuration (per-developer SDK paths, secrets)
+local.properties
+.env
+
+# Build outputs (APKs are published to GitHub Releases instead)
+*.apk
+*.aab
+app/build/
+build/reports/
+
+# OS junk
+Thumbs.db
+.DS_Store
+
+# Kotlin/Native & misc caches
+.kotlin/
+
+# NOTE: debug.keystore is intentionally NOT ignored.
+# It is committed so that CI builds are signed with the same key,
+# which is required for in-app updates to install over the existing app.

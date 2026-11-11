@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Downloaded update APKs: getExternalFilesDir(null)/updates -->
+    <external-files-path
+        name="update_apk"
+        path="updates/" />
+    <!-- Fallback location when external storage is unavailable: cacheDir/updates -->
+    <cache-path
+        name="update_apk_cache"
+        path="updates/" />
+</paths>
