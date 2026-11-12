@@ -24,8 +24,14 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # GitHub ubuntu runners ship a preinstalled Android SDK at $ANDROID_HOME;
+      # android-actions/setup-android v3 fails on the removed legacy "tools"
+      # package, so just accept licenses here and let Gradle fetch any
+      # missing platform/build-tools automatically.
+      - name: Accept Android SDK licenses
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+          echo "ANDROID_HOME=$ANDROID_HOME"
 
       - name: Build debug APK (signed with committed debug.keystore)
         run: |
