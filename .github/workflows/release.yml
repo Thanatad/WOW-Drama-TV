@@ -85,7 +85,9 @@ jobs:
             # Release already exists (e.g. re-run) -> just replace the asset
             gh release upload "$TAG" WOW-Drama-TV.apk --clobber
           else
+            # || upload guards against a race with a concurrent run creating it first
             gh release create "$TAG" WOW-Drama-TV.apk \
               --title "WOW Drama TV ${{ steps.ver.outputs.versionName }}" \
-              --notes "ดาวน์โหลด WOW-Drama-TV.apk เพื่อติดตั้งเวอร์ชัน ${{ steps.ver.outputs.versionName }}"
+              --notes "ดาวน์โหลด WOW-Drama-TV.apk เพื่อติดตั้งเวอร์ชัน ${{ steps.ver.outputs.versionName }}" \
+              || gh release upload "$TAG" WOW-Drama-TV.apk --clobber
           fi
