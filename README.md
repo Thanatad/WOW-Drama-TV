@@ -60,13 +60,13 @@ Releasing a new version is fully automated — just bump the version and push a 
 
 ```bash
 # 1. Edit app/build.gradle.kts
-#      versionCode = 5
-#      versionName = "1.4"
+#      versionCode = 6
+#      versionName = "1.5"
 
 # 2. Commit + tag
-git add -A && git commit -m "v1.4"
-git tag v1.4
-git push origin main v1.4
+git add -A && git commit -m "v1.5"
+git tag v1.5
+git push origin main v1.5
 ```
 
 The [release workflow](.github/workflows/release.yml) then:
