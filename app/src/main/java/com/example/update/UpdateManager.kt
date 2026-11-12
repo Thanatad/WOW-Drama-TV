@@ -108,8 +108,13 @@ object UpdateManager {
         onProgress: suspend (Int) -> Unit
     ): File? = withContext(Dispatchers.IO) {
         try {
-            val dest = getApkFile(context)
-            if (dest.exists()) dest.delete()
+            // Download to a .part file and only rename on full success, so a killed app or
+            // dropped connection can never leave a truncated APK that fails to install
+            val finalFile = getApkFile(context)
+            val partFile = File(finalFile.parentFile, finalFile.name + ".part")
+            partFile.parentFile?.mkdirs()
+            if (partFile.exists()) partFile.delete()
+            if (finalFile.exists()) finalFile.delete()
 
             val request = Request.Builder().url(info.apkUrl).build()
             val response = httpClient.newCall(request).execute()
@@ -121,8 +126,7 @@ object UpdateManager {
                 var downloaded = 0L
                 var lastPercent = -1
 
-                dest.parentFile?.mkdirs()
-                dest.outputStream().use { out ->
+                partFile.outputStream().use { out ->
                     body.byteStream().use { input ->
                         val buffer = ByteArray(64 * 1024)
                         while (true) {
@@ -142,10 +146,13 @@ object UpdateManager {
                 }
 
                 if (total > 0 && downloaded < total) {
-                    dest.delete()
+                    partFile.delete()
+                    null
+                } else if (!partFile.renameTo(finalFile)) {
+                    partFile.delete()
                     null
                 } else {
-                    dest
+                    finalFile
                 }
             }
         } catch (e: Exception) {

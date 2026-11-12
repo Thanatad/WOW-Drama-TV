@@ -397,6 +397,9 @@ class MainActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             val info = UpdateManager.fetchLatestUpdate() ?: return@launch
+            // Only record the check time after a successful fetch, so a failed/offline
+            // check doesn't delay the next attempt by the full interval
+            if (auto) markAutoCheckDone()
             if (!UpdateManager.isUpdateAvailable(info)) return@launch
             if (auto && getSkippedUpdateCode() == info.versionCode) return@launch
 
@@ -420,14 +423,16 @@ class MainActivity : ComponentActivity() {
         btnUpdateNow.requestFocus()
     }
 
-    /** Rate-limits the silent background check to once per UPDATE_CHECK_INTERVAL_MS. */
+    /** True only when the last successful check is older than UPDATE_CHECK_INTERVAL_MS. */
     private fun shouldAutoCheckNow(): Boolean {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         val last = prefs.getLong(KEY_LAST_UPDATE_CHECK, 0L)
-        val now = System.currentTimeMillis()
-        if (last != 0L && now - last < UPDATE_CHECK_INTERVAL_MS) return false
-        prefs.edit().putLong(KEY_LAST_UPDATE_CHECK, now).apply()
-        return true
+        return last == 0L || System.currentTimeMillis() - last >= UPDATE_CHECK_INTERVAL_MS
+    }
+
+    private fun markAutoCheckDone() {
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .edit().putLong(KEY_LAST_UPDATE_CHECK, System.currentTimeMillis()).apply()
     }
 
     private fun getSkippedUpdateCode(): Int =
@@ -890,8 +895,11 @@ class MainActivity : ComponentActivity() {
     /**
      * Toggles play/pause during cinema fullscreen via JavaScript, center touch/mouse tap,
      * and hardware Enter/DPAD_CENTER key dispatches to guarantee Viu and embed players respond.
+     *
+     * @param forcePlay when true (auto-play-on-enter path), never pauses an already-playing
+     * video — prevents the staggered retry taps from accidentally pausing playback
      */
-    fun toggleCinemaPlayback() {
+    fun toggleCinemaPlayback(forcePlay: Boolean = false) {
         try {
             ensureAudioUnmuted()
 
@@ -904,7 +912,8 @@ class MainActivity : ComponentActivity() {
                         v.muted = false;
                         v.volume = 1.0;
                         try {
-                            if (v.paused) v.play(); else v.pause();
+                            if (v.paused) v.play();
+                            else if (!$forcePlay) v.pause();
                         } catch(e) {}
                     }
                     var ifr = document.querySelector('.tv-fullscreen-player iframe') || 
@@ -988,7 +997,9 @@ class MainActivity : ComponentActivity() {
             for (delay in delays) {
                 webView.postDelayed({
                     if (isCinemaFullscreen) {
-                        toggleCinemaPlayback()
+                        // forcePlay: the retries must only ever START playback,
+                        // never accidentally pause a video that already began
+                        toggleCinemaPlayback(forcePlay = true)
                     }
                 }, delay)
             }

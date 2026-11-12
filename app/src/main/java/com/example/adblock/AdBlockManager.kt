@@ -89,6 +89,12 @@ object AdBlockManager {
         "slotxo"
     )
 
+    // Lowercase mirror of networkBlockedPatterns, recomputed only when rules are re-parsed
+    // (avoiding per-request .lowercase() on every pattern for every network request)
+    @Volatile
+    private var networkBlockedPatternsLower: List<String> =
+        networkBlockedPatterns.map { it.lowercase() }
+
     fun isVastAdUrl(url: String): Boolean {
         val lower = url.lowercase()
         return lower.contains("mvast.xml") ||
@@ -196,6 +202,7 @@ object AdBlockManager {
 
         cachedSelectors = selectors.toList()
         networkBlockedPatterns = netPatterns.toList()
+        networkBlockedPatternsLower = networkBlockedPatterns.map { it.lowercase() }
         compileCss(cachedSelectors)
     }
 
@@ -239,9 +246,7 @@ object AdBlockManager {
             return false
         }
 
-        return networkBlockedPatterns.any { pattern ->
-            lowerUrl.contains(pattern.lowercase())
-        }
+        return networkBlockedPatternsLower.any { lowerUrl.contains(it) }
     }
 
     /**
@@ -887,8 +892,14 @@ object AdBlockManager {
                     if (!existingStyle) {
                         var style = document.createElement('style');
                         style.id = styleId;
-                        var rawAdCss = window.atob('$cssBase64');
-                        var tvLayoutCss = window.atob('$tvCssBase64');
+                        // atob() yields a Latin-1 binary string; decode the UTF-8 bytes
+                        // properly, otherwise Thai characters in CSS selectors turn to mojibake
+                        function b64ToUtf8(b64) {
+                            var bytes = Uint8Array.from(atob(b64), function(c) { return c.charCodeAt(0); });
+                            return new TextDecoder('utf-8').decode(bytes);
+                        }
+                        var rawAdCss = b64ToUtf8('$cssBase64');
+                        var tvLayoutCss = b64ToUtf8('$tvCssBase64');
                         var tvFocusCss = `
                             :focus, [data-tv-focused="true"] {
                                 outline: 3.5px solid #E50914 !important;
@@ -1448,7 +1459,11 @@ object AdBlockManager {
 
                     setupTvInteractiveElements();
                     autoFocusEpisodeContent();
-                    setInterval(setupTvInteractiveElements, 4000);
+                    // Guard: the injection script runs on every page start/finish + after filter
+                    // init, so guard the interval or timers stack up and re-slow the app over time
+                    if (!window.__wow_setup_interval) {
+                        window.__wow_setup_interval = setInterval(setupTvInteractiveElements, 4000);
+                    }
 
                 } catch (err) {
                     console.error('[WOW TV] Injection script error:', err);
