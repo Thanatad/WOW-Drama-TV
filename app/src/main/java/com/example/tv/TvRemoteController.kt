@@ -370,6 +370,10 @@ object TvRemoteController {
                     if (isEpBtn || isServerBtn) {
                         try {
                             sessionStorage.setItem('__auto_fullscreen_ep', '1');
+                            // Explicit user action: re-allow auto fullscreen after a
+                            // deliberate fullscreen exit (Back key suppression)
+                            sessionStorage.removeItem('__wow_suppress_auto_fs');
+                            window.__wowSuppressAutoFullscreen = false;
                         } catch(e) {}
                         // Click the inner anchor once (clicking both button AND anchor
                         // triggers the navigation twice -> double page loads)
@@ -403,6 +407,12 @@ object TvRemoteController {
                                          (el.closest && el.closest('.miru-video-container'));
 
                     if (isDirectPlayer) {
+                        // Explicit user action: re-allow auto fullscreen after a
+                        // deliberate fullscreen exit (Back key suppression)
+                        try {
+                            sessionStorage.removeItem('__wow_suppress_auto_fs');
+                        } catch(e) {}
+                        window.__wowSuppressAutoFullscreen = false;
                         if (window.AndroidBridge && typeof window.AndroidBridge.enterCinemaFullscreenAndPlay === 'function') {
                             window.AndroidBridge.enterCinemaFullscreenAndPlay();
                         } else if (typeof window.playAndFullscreenCurrentVideo === 'function') {

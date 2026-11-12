@@ -1196,7 +1196,10 @@ object AdBlockManager {
                                 epb.addEventListener('click', function() {
                                     try {
                                         sessionStorage.setItem('__auto_fullscreen_ep', '1');
+                                        // Explicit user action: re-allow auto fullscreen
+                                        sessionStorage.removeItem('__wow_suppress_auto_fs');
                                     } catch(e) {}
+                                    window.__wowSuppressAutoFullscreen = false;
                                     if (window.AndroidBridge && typeof window.AndroidBridge.enterCinemaFullscreenAndPlay === 'function') {
                                         window.AndroidBridge.enterCinemaFullscreenAndPlay();
                                     } else if (typeof window.playAndFullscreenCurrentVideo === 'function') {
@@ -1210,12 +1213,21 @@ object AdBlockManager {
                         try {
                             if (sessionStorage.getItem('__auto_fullscreen_ep') === '1') {
                                 sessionStorage.removeItem('__auto_fullscreen_ep');
-                                if (window.AndroidBridge && typeof window.AndroidBridge.enterCinemaFullscreenAndPlay === 'function') {
-                                    window.AndroidBridge.enterCinemaFullscreenAndPlay();
-                                } else if (typeof window.playAndFullscreenCurrentVideo === 'function') {
-                                    setTimeout(function() {
-                                        window.playAndFullscreenCurrentVideo();
-                                    }, 400);
+                                // Skip when the user deliberately left fullscreen (Back key);
+                                // suppression survives across navigations via sessionStorage
+                                var suppressed = false;
+                                try {
+                                    suppressed = sessionStorage.getItem('__wow_suppress_auto_fs') === '1' ||
+                                                 window.__wowSuppressAutoFullscreen === true;
+                                } catch(e) {}
+                                if (!suppressed) {
+                                    if (window.AndroidBridge && typeof window.AndroidBridge.enterCinemaFullscreenAndPlay === 'function') {
+                                        window.AndroidBridge.enterCinemaFullscreenAndPlay();
+                                    } else if (typeof window.playAndFullscreenCurrentVideo === 'function') {
+                                        setTimeout(function() {
+                                            window.playAndFullscreenCurrentVideo();
+                                        }, 400);
+                                    }
                                 }
                             }
                         } catch(e) {}
@@ -1259,6 +1271,14 @@ object AdBlockManager {
                     // Fullscreen and Volume Maximizer
                     function triggerVideoFullscreenAndMaxVolume(video) {
                         try {
+                            // Respect the deliberate-exit suppression (Back key in fullscreen):
+                            // don't auto-enter fullscreen again from play events
+                            var suppressed = false;
+                            try {
+                                suppressed = sessionStorage.getItem('__wow_suppress_auto_fs') === '1' ||
+                                             window.__wowSuppressAutoFullscreen === true;
+                            } catch(e) {}
+                            if (suppressed) return;
                             if (!video) return;
                             video.volume = 1.0;
                             video.muted = false;
@@ -1447,6 +1467,36 @@ object AdBlockManager {
                             var v = e.target.tagName === 'VIDEO' ? e.target : e.target.querySelector('video');
                             triggerVideoFullscreenAndMaxVolume(v);
                         }
+                    }, true);
+
+                    // Episode-finished detection: when the current video ends, ask the
+                    // native side to show the "กด OK เพื่อดูตอนถัดไป" prompt.
+                    // (Works for in-page HTML5/JWPlayer videos; cross-origin iframe
+                    // players cannot be inspected from the parent document.)
+                    document.addEventListener('ended', function(e) {
+                        try {
+                            if (!e.target || e.target.tagName !== 'VIDEO') return;
+                            // Find the next visible episode button after the active one
+                            var active = document.querySelector('.miru-ep-btn.active') ||
+                                         document.querySelector('.miru-ep-btn');
+                            if (!active) return;
+                            var all = document.querySelectorAll('.miru-ep-btn');
+                            var next = null;
+                            for (var i = 0; i < all.length; i++) {
+                                if (all[i] === active) {
+                                    for (var j = i + 1; j < all.length; j++) {
+                                        var r = all[j].getBoundingClientRect();
+                                        if (r.width > 0 && r.height > 0) { next = all[j]; break; }
+                                    }
+                                    break;
+                                }
+                            }
+                            if (!next) return; // last episode: nothing to suggest
+                            var label = (next.textContent || next.innerText || '').trim();
+                            if (window.AndroidBridge && typeof window.AndroidBridge.onEpisodeEnded === 'function') {
+                                window.AndroidBridge.onEpisodeEnded(label);
+                            }
+                        } catch(e) {}
                     }, true);
 
                     // Prevent videos from remaining muted

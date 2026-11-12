@@ -144,12 +144,28 @@
                     android:id="@+id/btnReload"
                     android:layout_width="wrap_content"
                     android:layout_height="40dp"
+                    android:layout_marginEnd="10dp"
                     android:background="@drawable/tv_nav_button_bg"
                     android:focusable="true"
                     android:focusableInTouchMode="true"
                     android:paddingStart="14dp"
                     android:paddingEnd="14dp"
                     android:text="🔄 รีเฟรช"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:textSize="14sp" />
+
+                <!-- Update Center Button -->
+                <Button
+                    android:id="@+id/btnUpdate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:background="@drawable/tv_nav_button_bg"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:text="⚙️ อัปเดต"
                     android:textAllCaps="false"
                     android:textColor="@color/white"
                     android:textSize="14sp" />
@@ -341,6 +357,27 @@
             android:text="ลองใหม่อีกครั้ง (Retry)"
             android:textColor="@color/white" />
     </LinearLayout>
+
+    <!-- Next-Episode Prompt Banner (shown when the video ends) -->
+    <TextView
+        android:id="@+id/tvNextEpisodeBanner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="46dp"
+        android:background="@drawable/tv_search_dialog_bg"
+        android:backgroundTint="#E6161922"
+        android:elevation="50dp"
+        android:gravity="center"
+        android:paddingStart="26dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="26dp"
+        android:paddingBottom="14dp"
+        android:text="⏭ จบตอนแล้ว — กด OK เพื่อดูตอนถัดไป"
+        android:textColor="@color/white"
+        android:textSize="17sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
 
     <!-- In-App Update Prompt / Download Overlay -->
     <LinearLayout

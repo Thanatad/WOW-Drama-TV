@@ -61,6 +61,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var btnCatThai: Button
     private lateinit var btnSearch: Button
     private lateinit var btnReload: Button
+    private lateinit var btnUpdate: Button
 
     // Google TV Search Dialog Overlay Views
     private lateinit var tvSearchOverlay: LinearLayout
@@ -76,6 +77,10 @@ class MainActivity : ComponentActivity() {
     private lateinit var tvUpdateProgressText: TextView
     private lateinit var btnUpdateNow: Button
     private lateinit var btnUpdateLater: Button
+
+    // Next-Episode Prompt Banner (shown when the current episode's video ends)
+    private lateinit var tvNextEpisodeBanner: TextView
+    private var nextEpisodeBannerJob: kotlinx.coroutines.Job? = null
 
     // In-App Update State
     private var pendingUpdate: UpdateInfo? = null
@@ -160,6 +165,7 @@ class MainActivity : ComponentActivity() {
         btnCatAll = findViewById(R.id.btnCatAll)
         btnSearch = findViewById(R.id.btnSearch)
         btnReload = findViewById(R.id.btnReload)
+        btnUpdate = findViewById(R.id.btnUpdate)
 
         // Google TV Search Dialog Overlay
         tvSearchOverlay = findViewById(R.id.tvSearchOverlay)
@@ -175,6 +181,9 @@ class MainActivity : ComponentActivity() {
         tvUpdateProgressText = findViewById(R.id.tvUpdateProgressText)
         btnUpdateNow = findViewById(R.id.btnUpdateNow)
         btnUpdateLater = findViewById(R.id.btnUpdateLater)
+
+        // Next-Episode Prompt Banner
+        tvNextEpisodeBanner = findViewById(R.id.tvNextEpisodeBanner)
 
         activeCategoryButton = btnCatChina
 
@@ -210,6 +219,10 @@ class MainActivity : ComponentActivity() {
             openSearchOverlay()
         }
 
+        btnUpdate.setOnClickListener {
+            openUpdateCenter()
+        }
+
         // Explicit focus chains between top buttons for seamless remote navigation
         btnCatChina.nextFocusLeftId = R.id.btnCatChina
         btnCatChina.nextFocusRightId = R.id.btnCatThai
@@ -236,10 +249,14 @@ class MainActivity : ComponentActivity() {
         btnSearch.nextFocusDownId = R.id.webView
 
         btnReload.nextFocusLeftId = R.id.btnSearch
-        btnReload.nextFocusRightId = R.id.btnReload
+        btnReload.nextFocusRightId = R.id.btnUpdate
         btnReload.nextFocusDownId = R.id.webView
 
-        val topButtons = listOf(btnCatChina, btnCatThai, btnCatKorea, btnCatJapan, btnCatAll, btnSearch, btnReload)
+        btnUpdate.nextFocusLeftId = R.id.btnReload
+        btnUpdate.nextFocusRightId = R.id.btnUpdate
+        btnUpdate.nextFocusDownId = R.id.webView
+
+        val topButtons = listOf(btnCatChina, btnCatThai, btnCatKorea, btnCatJapan, btnCatAll, btnSearch, btnReload, btnUpdate)
         topButtons.forEach { button ->
             // Auto-scroll horizontal top bar when a button gains focus
             button.setOnFocusChangeListener { view, hasFocus ->
@@ -416,6 +433,7 @@ class MainActivity : ComponentActivity() {
         }
         btnUpdateNow.text = "อัปเดตเลย"
         btnUpdateNow.visibility = View.VISIBLE
+        btnUpdateLater.text = "ภายหลัง"
         btnUpdateLater.visibility = View.VISIBLE
         tvUpdateProgressBar.visibility = View.GONE
         tvUpdateProgressText.visibility = View.GONE
@@ -448,6 +466,116 @@ class MainActivity : ComponentActivity() {
         if (!isCinemaFullscreen) {
             webView.requestFocus()
         }
+    }
+
+    /**
+     * Manual "update center": shows the current version, checks the manifest on demand,
+     * and reports up-to-date / failure states in Thai — reachable from the top bar.
+     */
+    private fun openUpdateCenter() {
+        if (isUpdateDownloading) {
+            tvUpdateTitle.text = "⏬ กำลังดาวน์โหลดอัปเดตอยู่"
+            tvUpdateNotes.text = "โปรดรอจนกว่าการดาวน์โหลดจะเสร็จ แล้วแอปจะเปิดหน้าติดตั้งให้เอง"
+            btnUpdateNow.visibility = View.GONE
+            btnUpdateLater.text = "ปิด"
+            tvUpdateProgressBar.visibility = View.VISIBLE
+            tvUpdateProgressText.visibility = View.VISIBLE
+            tvUpdateOverlay.visibility = View.VISIBLE
+            btnUpdateLater.requestFocus()
+            return
+        }
+
+        // A pending update is already known -> show its prompt directly
+        pendingUpdate?.let {
+            showUpdatePrompt(it)
+            return
+        }
+
+        tvUpdateTitle.text = "⚙️ ศูนย์อัปเดต — เวอร์ชันปัจจุบัน ${BuildConfig.VERSION_NAME}"
+        tvUpdateNotes.text = "กำลังเช็คเวอร์ชันล่าสุดจากเซิร์ฟเวอร์..."
+        btnUpdateNow.visibility = View.GONE
+        btnUpdateLater.text = "ปิด"
+        tvUpdateProgressBar.visibility = View.GONE
+        tvUpdateProgressText.visibility = View.GONE
+        tvUpdateOverlay.visibility = View.VISIBLE
+        btnUpdateLater.requestFocus()
+
+        lifecycleScope.launch {
+            val info = UpdateManager.fetchLatestUpdate()
+            when {
+                info == null -> {
+                    tvUpdateTitle.text = "⚠️ เช็คอัปเดตไม่สำเร็จ"
+                    tvUpdateNotes.text = "ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วเปิดศูนย์อัปเดตอีกครั้ง"
+                }
+                !UpdateManager.isUpdateAvailable(info) -> {
+                    markAutoCheckDone()
+                    tvUpdateTitle.text = "✅ คุณใช้เวอร์ชันล่าสุดแล้ว"
+                    tvUpdateNotes.text =
+                        "เวอร์ชันปัจจุบัน ${BuildConfig.VERSION_NAME} เป็นเวอร์ชันล่าสุด (บนเซิร์ฟเวอร์: ${info.versionName})"
+                }
+                else -> showUpdatePrompt(info)
+            }
+        }
+    }
+
+    // ==================== Next-Episode Prompt ====================
+
+    /**
+     * Called from JS when the current episode's video fires its "ended" event.
+     * Shows a native banner: press OK to continue to the next episode.
+     */
+    fun onEpisodeEnded(nextEpLabel: String) {
+        if (tvUpdateOverlay.visibility == View.VISIBLE) return
+        val label = nextEpLabel.ifBlank { "ตอนถัดไป" }
+        tvNextEpisodeBanner.text = "⏭ จบตอนแล้ว — กด OK เพื่อดู \"$label\""
+        tvNextEpisodeBanner.visibility = View.VISIBLE
+        // Auto-hide after 15s if the user does nothing
+        nextEpisodeBannerJob?.cancel()
+        nextEpisodeBannerJob = lifecycleScope.launch {
+            delay(15_000)
+            tvNextEpisodeBanner.visibility = View.GONE
+        }
+    }
+
+    private fun hideNextEpisodeBanner() {
+        nextEpisodeBannerJob?.cancel()
+        nextEpisodeBannerJob = null
+        tvNextEpisodeBanner.visibility = View.GONE
+    }
+
+    /** Clicks the next episode button in the WebView (re-uses the auto-fullscreen flow). */
+    private fun goToNextEpisode() {
+        hideNextEpisodeBanner()
+        webView.evaluateJavascript(
+            """
+            (function() {
+                var active = document.querySelector('.miru-ep-btn.active');
+                var all = document.querySelectorAll('.miru-ep-btn');
+                var next = null;
+                for (var i = 0; i < all.length; i++) {
+                    if (all[i] === active) {
+                        for (var j = i + 1; j < all.length; j++) {
+                            var r = all[j].getBoundingClientRect();
+                            if (r.width > 0 && r.height > 0) { next = all[j]; break; }
+                        }
+                        break;
+                    }
+                }
+                if (next) {
+                    // Explicit user action: re-allow auto fullscreen, then click once
+                    try {
+                        sessionStorage.setItem('__auto_fullscreen_ep', '1');
+                        sessionStorage.removeItem('__wow_suppress_auto_fs');
+                    } catch(e) {}
+                    window.__wowSuppressAutoFullscreen = false;
+                    var a = next.querySelector('a') || next;
+                    a.click();
+                    return 'NEXT_CLICKED';
+                }
+                return 'NO_NEXT';
+            })()
+            """.trimIndent(), null
+        )
     }
 
     private fun onUpdateNowClicked() {
@@ -765,6 +893,18 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        /** JS notifies us that the current episode's video finished playing. */
+        @JavascriptInterface
+        fun onEpisodeEnded(nextEpLabel: String) {
+            runOnUiThread {
+                try {
+                    this@MainActivity.onEpisodeEnded(nextEpLabel)
+                } catch (e: Exception) {
+                    android.util.Log.w("MainActivity", "Error showing next-episode prompt", e)
+                }
+            }
+        }
+
         @JavascriptInterface
         fun tapAtCoordinates(coordX: Float, coordY: Float) {
             runOnUiThread {
@@ -1040,7 +1180,23 @@ class MainActivity : ComponentActivity() {
         if (!isCinemaFullscreen) return
         isCinemaFullscreen = false
         findViewById<View>(R.id.tvTopBarScroll)?.visibility = View.VISIBLE
+        hideNextEpisodeBanner()
         webView.evaluateJavascript("if (typeof window.exitCinemaFullscreen === 'function') { window.exitCinemaFullscreen(); }", null)
+        // The user deliberately left fullscreen: kill the pending auto-fullscreen flag
+        // and suppress every auto-trigger (page-load flag, play listeners) so pressing
+        // Back cannot bounce the app straight back into fullscreen. Explicit actions
+        // (clicking an episode/player again) clear the suppression.
+        webView.evaluateJavascript(
+            """
+            (function() {
+                try {
+                    sessionStorage.removeItem('__auto_fullscreen_ep');
+                    sessionStorage.setItem('__wow_suppress_auto_fs', '1');
+                } catch(e) {}
+                window.__wowSuppressAutoFullscreen = true;
+            })()
+            """.trimIndent(), null
+        )
         Toast.makeText(this@MainActivity, "ออกจากโหมดเต็มจอ", Toast.LENGTH_SHORT).show()
 
         // Restore focus to episode buttons or content cards
@@ -1188,7 +1344,7 @@ class MainActivity : ComponentActivity() {
                        keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
 
         // Check if user is currently interacting with the Top Category Bar
-        val topButtons = listOf(btnCatChina, btnCatThai, btnCatKorea, btnCatJapan, btnCatAll, btnSearch, btnReload)
+        val topButtons = listOf(btnCatChina, btnCatThai, btnCatKorea, btnCatJapan, btnCatAll, btnSearch, btnReload, btnUpdate)
         val isTopBarFocused = topButtons.any { it.isFocused } || findViewById<View>(R.id.tvTopBarScroll).isFocused
 
         // Detect Double OK press (Simulates Double Tap to enter/toggle fullscreen)
@@ -1203,6 +1359,13 @@ class MainActivity : ComponentActivity() {
                 return true
             }
             lastOkPressTime = now
+        }
+
+        // Next-episode banner is showing: OK advances to the next episode instead of
+        // toggling play/pause on the ended video
+        if (tvNextEpisodeBanner.visibility == View.VISIBLE && isOkKey) {
+            goToNextEpisode()
+            return true
         }
 
         // If cinema fullscreen is active, handle playback controls via TV Remote D-pad
