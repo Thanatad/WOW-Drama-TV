@@ -1469,36 +1469,6 @@ object AdBlockManager {
                         }
                     }, true);
 
-                    // Episode-finished detection: when the current video ends, ask the
-                    // native side to show the "กด OK เพื่อดูตอนถัดไป" prompt.
-                    // (Works for in-page HTML5/JWPlayer videos; cross-origin iframe
-                    // players cannot be inspected from the parent document.)
-                    document.addEventListener('ended', function(e) {
-                        try {
-                            if (!e.target || e.target.tagName !== 'VIDEO') return;
-                            // Find the next visible episode button after the active one
-                            var active = document.querySelector('.miru-ep-btn.active') ||
-                                         document.querySelector('.miru-ep-btn');
-                            if (!active) return;
-                            var all = document.querySelectorAll('.miru-ep-btn');
-                            var next = null;
-                            for (var i = 0; i < all.length; i++) {
-                                if (all[i] === active) {
-                                    for (var j = i + 1; j < all.length; j++) {
-                                        var r = all[j].getBoundingClientRect();
-                                        if (r.width > 0 && r.height > 0) { next = all[j]; break; }
-                                    }
-                                    break;
-                                }
-                            }
-                            if (!next) return; // last episode: nothing to suggest
-                            var label = (next.textContent || next.innerText || '').trim();
-                            if (window.AndroidBridge && typeof window.AndroidBridge.onEpisodeEnded === 'function') {
-                                window.AndroidBridge.onEpisodeEnded(label);
-                            }
-                        } catch(e) {}
-                    }, true);
-
                     // Prevent videos from remaining muted
                     document.addEventListener('volumechange', function(e) {
                         if (e.target && e.target.tagName === 'VIDEO') {

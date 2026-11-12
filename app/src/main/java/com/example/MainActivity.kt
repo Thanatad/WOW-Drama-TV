@@ -78,10 +78,6 @@ class MainActivity : ComponentActivity() {
     private lateinit var btnUpdateNow: Button
     private lateinit var btnUpdateLater: Button
 
-    // Next-Episode Prompt Banner (shown when the current episode's video ends)
-    private lateinit var tvNextEpisodeBanner: TextView
-    private var nextEpisodeBannerJob: kotlinx.coroutines.Job? = null
-
     // In-App Update State
     private var pendingUpdate: UpdateInfo? = null
     private var downloadedUpdateFile: File? = null
@@ -181,9 +177,6 @@ class MainActivity : ComponentActivity() {
         tvUpdateProgressText = findViewById(R.id.tvUpdateProgressText)
         btnUpdateNow = findViewById(R.id.btnUpdateNow)
         btnUpdateLater = findViewById(R.id.btnUpdateLater)
-
-        // Next-Episode Prompt Banner
-        tvNextEpisodeBanner = findViewById(R.id.tvNextEpisodeBanner)
 
         activeCategoryButton = btnCatChina
 
@@ -518,65 +511,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // ==================== Next-Episode Prompt ====================
-
-    /**
-     * Called from JS when the current episode's video fires its "ended" event.
-     * Shows a native banner: press OK to continue to the next episode.
-     */
-    fun onEpisodeEnded(nextEpLabel: String) {
-        if (tvUpdateOverlay.visibility == View.VISIBLE) return
-        val label = nextEpLabel.ifBlank { "ตอนถัดไป" }
-        tvNextEpisodeBanner.text = "⏭ จบตอนแล้ว — กด OK เพื่อดู \"$label\""
-        tvNextEpisodeBanner.visibility = View.VISIBLE
-        // Auto-hide after 15s if the user does nothing
-        nextEpisodeBannerJob?.cancel()
-        nextEpisodeBannerJob = lifecycleScope.launch {
-            delay(15_000)
-            tvNextEpisodeBanner.visibility = View.GONE
-        }
-    }
-
-    private fun hideNextEpisodeBanner() {
-        nextEpisodeBannerJob?.cancel()
-        nextEpisodeBannerJob = null
-        tvNextEpisodeBanner.visibility = View.GONE
-    }
-
-    /** Clicks the next episode button in the WebView (re-uses the auto-fullscreen flow). */
-    private fun goToNextEpisode() {
-        hideNextEpisodeBanner()
-        webView.evaluateJavascript(
-            """
-            (function() {
-                var active = document.querySelector('.miru-ep-btn.active');
-                var all = document.querySelectorAll('.miru-ep-btn');
-                var next = null;
-                for (var i = 0; i < all.length; i++) {
-                    if (all[i] === active) {
-                        for (var j = i + 1; j < all.length; j++) {
-                            var r = all[j].getBoundingClientRect();
-                            if (r.width > 0 && r.height > 0) { next = all[j]; break; }
-                        }
-                        break;
-                    }
-                }
-                if (next) {
-                    // Explicit user action: re-allow auto fullscreen, then click once
-                    try {
-                        sessionStorage.setItem('__auto_fullscreen_ep', '1');
-                        sessionStorage.removeItem('__wow_suppress_auto_fs');
-                    } catch(e) {}
-                    window.__wowSuppressAutoFullscreen = false;
-                    var a = next.querySelector('a') || next;
-                    a.click();
-                    return 'NEXT_CLICKED';
-                }
-                return 'NO_NEXT';
-            })()
-            """.trimIndent(), null
-        )
-    }
+    // ==================== Next-Episode Prompt (removed) ====================
+    // The "กด OK เพื่อดูตอนถัดไป" banner was removed: episode-end detection only
+    // works for in-page HTML5 videos, but most players are cross-origin iframes
+    // that cannot be inspected from the parent document, so the prompt rarely
+    // appeared. A new approach is pending — do not re-add without one.
 
     private fun onUpdateNowClicked() {
         if (isUpdateDownloading) return
@@ -893,18 +832,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        /** JS notifies us that the current episode's video finished playing. */
-        @JavascriptInterface
-        fun onEpisodeEnded(nextEpLabel: String) {
-            runOnUiThread {
-                try {
-                    this@MainActivity.onEpisodeEnded(nextEpLabel)
-                } catch (e: Exception) {
-                    android.util.Log.w("MainActivity", "Error showing next-episode prompt", e)
-                }
-            }
-        }
-
         @JavascriptInterface
         fun tapAtCoordinates(coordX: Float, coordY: Float) {
             runOnUiThread {
@@ -1180,7 +1107,6 @@ class MainActivity : ComponentActivity() {
         if (!isCinemaFullscreen) return
         isCinemaFullscreen = false
         findViewById<View>(R.id.tvTopBarScroll)?.visibility = View.VISIBLE
-        hideNextEpisodeBanner()
         webView.evaluateJavascript("if (typeof window.exitCinemaFullscreen === 'function') { window.exitCinemaFullscreen(); }", null)
         // The user deliberately left fullscreen: kill the pending auto-fullscreen flag
         // and suppress every auto-trigger (page-load flag, play listeners) so pressing
@@ -1359,13 +1285,6 @@ class MainActivity : ComponentActivity() {
                 return true
             }
             lastOkPressTime = now
-        }
-
-        // Next-episode banner is showing: OK advances to the next episode instead of
-        // toggling play/pause on the ended video
-        if (tvNextEpisodeBanner.visibility == View.VISIBLE && isOkKey) {
-            goToNextEpisode()
-            return true
         }
 
         // If cinema fullscreen is active, handle playback controls via TV Remote D-pad
