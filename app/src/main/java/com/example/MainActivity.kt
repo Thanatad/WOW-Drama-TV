@@ -100,14 +100,7 @@ class MainActivity : ComponentActivity() {
     // Back Press Double-tap to Exit Tracker
     private var lastBackPressTime: Long = 0
 
-    // When launched from the native Browse grid with a specific URL,
-    // a single Back press returns to the grid instead of exiting the app
-    private var launchedDetailUrl: String? = null
-
     companion object {
-        /** Optional entry URL from the native Browse grid (skips category restore). */
-        const val EXTRA_URL = "extra_url"
-
         private const val URL_CHINA = "https://wow-drama.com/cat_category/cn-2024-th/"
         private const val URL_THAI = "https://wow-drama.com/category/the-series-th/"
         private const val URL_KOREA = "https://wow-drama.com/cat_category/korea-thai-sound/"
@@ -146,9 +139,6 @@ class MainActivity : ComponentActivity() {
         setupUpdateChecker()
 
         // Restore last visited page if available, otherwise default to Chinese Drama
-        // (skip restore when opened from the native Browse grid with a specific URL)
-        launchedDetailUrl = intent?.getStringExtra(EXTRA_URL)
-            ?.takeIf { it.contains("wow-drama.com") }
         restoreLastVisitedPageOrDefault()
     }
 
@@ -317,27 +307,6 @@ class MainActivity : ComponentActivity() {
      * highlighting the relevant category if applicable, or defaults to Chinese Drama.
      */
     private fun restoreLastVisitedPageOrDefault() {
-        // Direct entry from the native Browse grid: load the tapped drama immediately
-        val launched = launchedDetailUrl
-        if (launched != null) {
-            val matchingButton = when {
-                launched.startsWith(URL_CHINA) || launched.contains("cn-") -> btnCatChina
-                launched.startsWith(URL_THAI) || launched.contains("the-series-th") -> btnCatThai
-                launched.startsWith(URL_KOREA) || launched.contains("korea") -> btnCatKorea
-                launched.startsWith(URL_JAPAN) || launched.contains("jp-") -> btnCatJapan
-                launched == URL_HOME -> btnCatAll
-                else -> null
-            }
-            listOf(btnCatChina, btnCatThai, btnCatKorea, btnCatJapan, btnCatAll).forEach {
-                it.isSelected = (it == matchingButton)
-            }
-            if (matchingButton != null) {
-                activeCategoryButton = matchingButton
-            }
-            webView.loadUrl(launched)
-            return
-        }
-
         val lastUrl = getLastVisitedUrl()
         if (lastUrl != null) {
             val matchingButton = when {
@@ -1155,13 +1124,7 @@ class MainActivity : ComponentActivity() {
                     return
                 }
 
-                // 5. Launched from the native Browse grid -> single Back returns to the grid
-                if (launchedDetailUrl != null) {
-                    finish()
-                    return
-                }
-
-                // 6. Double-tap Back within 2.5s to exit TV application
+                // 5. Double-tap Back within 2.5s to exit TV application
                 val currentTime = SystemClock.elapsedRealtime()
                 if (currentTime - lastBackPressTime < BACK_PRESS_EXIT_INTERVAL) {
                     finish()
