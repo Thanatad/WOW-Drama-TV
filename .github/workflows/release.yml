@@ -81,7 +81,11 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           TAG="${GITHUB_REF_NAME}"
-          gh release create "$TAG" WOW-Drama-TV.apk \
-            --title "WOW Drama TV ${{ steps.ver.outputs.versionName }}" \
-            --notes "ดาวน์โหลด WOW-Drama-TV.apk เพื่อติดตั้งเวอร์ชัน ${{ steps.ver.outputs.versionName }}" \
-            --clobber || gh release upload "$TAG" WOW-Drama-TV.apk --clobber
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # Release already exists (e.g. re-run) -> just replace the asset
+            gh release upload "$TAG" WOW-Drama-TV.apk --clobber
+          else
+            gh release create "$TAG" WOW-Drama-TV.apk \
+              --title "WOW Drama TV ${{ steps.ver.outputs.versionName }}" \
+              --notes "ดาวน์โหลด WOW-Drama-TV.apk เพื่อติดตั้งเวอร์ชัน ${{ steps.ver.outputs.versionName }}"
+          fi
