@@ -25,10 +25,8 @@
 | 🛡️ | **Built-in AdBlock** | Thai ad-filter list, network-level request blocking, VAST video-ad skipping, and popup protection |
 | 🍿 | **Cinema fullscreen** | Double-press **OK** to jump into a 100% fullscreen player — no grey veils, no paused screens |
 | 🔍 | **Remote search** | Quick search overlay reachable from the top bar |
-| 🔄 | **Self-updating** | The app checks a GitHub-hosted manifest and downloads/installs new versions by itself |
+| 🔄 | **Self-updating** | Checks a GitHub-hosted manifest and downloads/installs new versions by itself, or on demand via the **⚙️ อัปเดต** top-bar button |
 | 🇹🇭 | **Thai-first UX** | Auto-selects Thai dub, native Thai interface text |
-
-| 🚀 | **Native Netflix-style browse** | Poster grid rendered natively (no WebView) — instant category switching, smooth D-pad scrolling; WebView is used only for the detail/player page |
 
 ## 🎛️ Remote Controls
 
@@ -39,6 +37,8 @@
 | **Back** | Go back • **Double-press** = exit app |
 | **OK (in player)** | Toggle play / pause |
 | **Left / Right (in player)** | Seek ±10 seconds |
+| **Back (in fullscreen)** | Exit fullscreen only — pressing Back again navigates back (never bounces straight back into fullscreen) |
+| **⚙️ อัปเดต (top bar)** | Open the update center: check for updates on demand, see current/latest version, install |
 
 ## 📲 Installation
 
@@ -60,13 +60,13 @@ Releasing a new version is fully automated — just bump the version and push a 
 
 ```bash
 # 1. Edit app/build.gradle.kts
-#      versionCode = 2
-#      versionName = "1.1"
+#      versionCode = 5
+#      versionName = "1.4"
 
 # 2. Commit + tag
-git add -A && git commit -m "v1.1"
-git tag v1.1
-git push origin main v1.1
+git add -A && git commit -m "v1.4"
+git tag v1.4
+git push origin main v1.4
 ```
 
 The [release workflow](.github/workflows/release.yml) then:
@@ -86,10 +86,7 @@ The [release workflow](.github/workflows/release.yml) then:
 
 ```
 app/src/main/java/com/example/
-├── BrowseActivity.kt          # Native Netflix-style browse grid (launcher)
-├── browse/
-│   └── WowScraper.kt          # Jsoup scraper for listing pages (cards + pagination)
-├── MainActivity.kt            # WebView host: detail/player page, overlays, key routing, update UI
+├── MainActivity.kt            # Host activity: WebView, overlays, key routing, update UI
 ├── adblock/
 │   └── AdBlockManager.kt      # Filter parsing, CSS/JS injection, TV layout theme
 ├── tv/
@@ -113,23 +110,14 @@ automatically by the Android Gradle plugin).
 
 ```mermaid
 flowchart LR
-    A[TV Remote] -->|KeyEvents| B[BrowseActivity<br/>native poster grid]
-    B -->|Jsoup scrape| C[(wow-drama.com<br/>listing pages)]
-    B -->|open detail| D[MainActivity<br/>WebView]
-    D --> E[TvRemoteController<br/>spatial nav JS]
-    E --> F[WebView player<br/>detail / episode page]
-    F --> G[AdBlockManager<br/>request blocking + CSS/JS injection]
-    D --> H[UpdateManager]
-    H -->|fetch manifest| I[(GitHub Releases)]
-    I -->|APK| J[System Installer]
+    A[TV Remote] -->|KeyEvents| B[MainActivity]
+    B --> C[TvRemoteController<br/>spatial nav JS]
+    C --> D[WebView<br/>wow-drama.com]
+    D --> E[AdBlockManager<br/>request blocking + CSS/JS injection]
+    B --> F[UpdateManager]
+    F -->|fetch manifest| G[(GitHub Releases)]
+    G -->|APK| H[System Installer]
 ```
-
-- **Browsing is native**: listing pages are scraped with Jsoup into a
-  RecyclerView poster grid (5 columns) — fast to open, smooth to scroll,
-  and D-pad friendly. "Load more" follows the site's `rel=next` pagination.
-- **Playing stays in WebView**: tapping a card opens the WebView only for
-  the drama detail / episode / player page, where the existing cinema
-  fullscreen, auto-play and remote-controlled player logic apply.
 
 - **Key events** are intercepted before the WebView and translated into a
   lightweight, *cached* spatial-navigation script — repeated presses reuse the
