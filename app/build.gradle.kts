@@ -16,8 +16,8 @@ android {
     applicationId = "com.aistudio.wowdramatv.tkzqpn"
     minSdk = 24
     targetSdk = 36
-    versionCode = 2
-    versionName = "1.1"
+    versionCode = 3
+    versionName = "1.2"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -146,6 +146,10 @@ dependencies {
   implementation(libs.logging.interceptor)
   implementation(libs.moshi.kotlin)
   implementation(libs.okhttp)
+  // Hybrid browse UI: HTML scraping + native poster grid
+  implementation("androidx.recyclerview:recyclerview:1.3.2")
+  implementation("org.jsoup:jsoup:1.18.3")
+  implementation("io.coil-kt:coil:2.7.0")
   // implementation(libs.play.services.location)
   implementation(libs.retrofit)
   testImplementation(libs.androidx.compose.ui.test.junit4)
