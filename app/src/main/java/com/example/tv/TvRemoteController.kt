@@ -355,9 +355,10 @@ object TvRemoteController {
                     if (isTabBtn) {
                         window.__userManuallySelectedTab = true;
                         window.__hasAutoSelectedThaiDub = true;
-                        el.click();
+                        // Click the inner anchor once (clicking both button AND anchor
+                        // triggers the navigation twice -> double page loads)
                         var innerA = el.querySelector('a');
-                        if (innerA) innerA.click();
+                        if (innerA) innerA.click(); else el.click();
                         return 'CLICKED_TAB';
                     }
 
@@ -370,9 +371,10 @@ object TvRemoteController {
                         try {
                             sessionStorage.setItem('__auto_fullscreen_ep', '1');
                         } catch(e) {}
-                        el.click();
+                        // Click the inner anchor once (clicking both button AND anchor
+                        // triggers the navigation twice -> double page loads)
                         var innerLink = el.querySelector('a');
-                        if (innerLink) innerLink.click();
+                        if (innerLink) innerLink.click(); else el.click();
 
                         // Automatically expand to cinema fullscreen and start playing immediately
                         if (window.AndroidBridge && typeof window.AndroidBridge.enterCinemaFullscreenAndPlay === 'function') {

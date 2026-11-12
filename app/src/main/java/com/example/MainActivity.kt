@@ -903,7 +903,8 @@ class MainActivity : ComponentActivity() {
         try {
             ensureAudioUnmuted()
 
-            // 1. Send play/pause and focus commands via JavaScript
+            // 1. Send play/pause and focus commands via JavaScript. The same script
+            //    also reports whether a real player sits at the center of the screen.
             webView.evaluateJavascript("""
                 (function() {
                     var videos = document.querySelectorAll('video');
@@ -916,9 +917,9 @@ class MainActivity : ComponentActivity() {
                             else if (!$forcePlay) v.pause();
                         } catch(e) {}
                     }
-                    var ifr = document.querySelector('.tv-fullscreen-player iframe') || 
-                              document.getElementById('miru-player-iframe') || 
-                              document.querySelector('iframe.miru-player-iframe') || 
+                    var ifr = document.querySelector('.tv-fullscreen-player iframe') ||
+                              document.getElementById('miru-player-iframe') ||
+                              document.querySelector('iframe.miru-player-iframe') ||
                               document.querySelector('iframe');
                     if (ifr) {
                         try {
@@ -934,18 +935,41 @@ class MainActivity : ComponentActivity() {
                     for (var pb = 0; pb < playBtns.length; pb++) {
                         try { playBtns[pb].click(); } catch(e) {}
                     }
-                })();
-            """.trimIndent(), null)
 
-            // 2. Dispatch center tap to trigger big play button in iframe
-            simulateCenterTap()
+                    // Guard: only tap / send key events when a player is actually at
+                    // the center of the screen. Otherwise the synthetic center tap and
+                    // Enter/DPAD_CENTER keys land on the episode grid and navigate to
+                    // random other episodes (the "rapid EP clicking" freeze bug).
+                    var cx = window.innerWidth / 2;
+                    var cy = window.innerHeight / 2;
+                    var center = null;
+                    try { center = document.elementFromPoint(cx, cy); } catch(e) {}
+                    var isOnPlayer = false;
+                    if (center) {
+                        isOnPlayer = center.tagName === 'VIDEO' || center.tagName === 'IFRAME' ||
+                            !!(center.closest && (center.closest('.tv-fullscreen-player') ||
+                                center.closest('.miru-video-container') || center.closest('iframe')));
+                    }
+                    var hasPlayer = document.querySelector('video, .tv-fullscreen-player, .miru-video-container, .miru-player-iframe, iframe');
+                    return (isOnPlayer || (hasPlayer && window.__isCinemaFullscreen)) ? 'TAP_PLAYER' : 'NO_PLAYER';
+                })()
+            """.trimIndent()) { result ->
+                if (result != null && result.contains("TAP_PLAYER")) {
+                    try {
+                        // 2. Dispatch center tap to trigger big play button in iframe
+                        simulateCenterTap()
 
-            // 3. Dispatch Enter / DPAD_CENTER keys to WebView for players with keyboard focus
-            val now = SystemClock.uptimeMillis()
-            webView.dispatchKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER, 0))
-            webView.dispatchKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER, 0))
-            webView.dispatchKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_CENTER, 0))
-            webView.dispatchKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_CENTER, 0))
+                        // 3. Dispatch Enter / DPAD_CENTER keys to WebView for players with keyboard focus
+                        val now = SystemClock.uptimeMillis()
+                        webView.dispatchKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER, 0))
+                        webView.dispatchKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER, 0))
+                        webView.dispatchKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_CENTER, 0))
+                        webView.dispatchKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_CENTER, 0))
+                    } catch (e: Exception) {
+                        android.util.Log.w("MainActivity", "Error in playback tap dispatch", e)
+                    }
+                }
+            }
         } catch (e: Exception) {
             android.util.Log.w("MainActivity", "Error in toggleCinemaPlayback", e)
         }
@@ -971,7 +995,13 @@ class MainActivity : ComponentActivity() {
      * Enters 100% cinema fullscreen mode for the video player
      */
     fun enterCinemaFullscreen() {
-        if (isCinemaFullscreen) return
+        if (isCinemaFullscreen) {
+            // Already in fullscreen on the Android side, but the page may have just
+            // navigated (e.g. clicked an episode) — the new document needs the JS
+            // overlay applied again or taps/keys will land on the raw page content
+            webView.evaluateJavascript("if (typeof window.applyCinemaFullscreen === 'function') { window.applyCinemaFullscreen(); }", null)
+            return
+        }
         isCinemaFullscreen = true
         findViewById<View>(R.id.tvTopBarScroll)?.visibility = View.GONE
         tvStatusOverlay.visibility = View.GONE
