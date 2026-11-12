@@ -403,6 +403,9 @@ class MainActivity : ComponentActivity() {
 
     private fun checkForUpdate(auto: Boolean) {
         if (isUpdateDownloading || tvUpdateOverlay.visibility == View.VISIBLE) return
+        // Never interrupt fullscreen playback (or the search overlay) with the prompt;
+        // the auto check timestamp is only recorded on success, so it retries later
+        if (auto && (isCinemaFullscreen || tvSearchOverlay.visibility == View.VISIBLE)) return
         if (auto && !shouldAutoCheckNow()) return
 
         lifecycleScope.launch {
